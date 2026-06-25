@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rescue Rangers-style Prototype</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #1d2b53;
+      color: #fff;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 { margin: 12px 0 4px; font-size: 18px; }
+    #hint { margin: 0 0 8px; font-size: 13px; opacity: 0.8; }
+    #game { border: 2px solid #fff; image-rendering: pixelated; }
+  </style>
+</head>
+<body>
+  <h1>Box-Throw Platformer — learning prototype</h1>
+  <p id="hint">←/→ move &nbsp;•&nbsp; ↑ or Z jump &nbsp;•&nbsp; ↓ crouch &nbsp;•&nbsp; X grab/throw crate</p>
+  <div id="game"></div>
+
+  <!-- Phaser 3 from CDN. No build step, no install — just open this file. -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
