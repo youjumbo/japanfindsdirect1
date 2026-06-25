@@ -127,44 +127,42 @@ class GameScene extends Phaser.Scene {
     this.updateHud();
   }
 
-  // Paint a simple parallax-style backdrop: a vertical sky gradient, two
-  // rolling hills, and a few clouds. All drawn with the Graphics API so it
-  // needs no images. Sits behind everything (negative depth).
+  // Paint an INDOOR room backdrop — the core Rescue Rangers vibe of tiny heroes
+  // inside a giant human house. Striped wallpaper, a night window, and a wooden
+  // baseboard. All drawn with the Graphics API (no images). Negative depth so it
+  // sits behind the player and platforms.
   buildBackground() {
     const W = TUNING.width;
     const H = TUNING.height;
     const bg = this.add.graphics();
     bg.setDepth(-10);
 
-    // Sky gradient (top color -> bottom color), drawn as thin horizontal bands.
-    const top = Phaser.Display.Color.ValueToColor(0x4aa6e0);
-    const bot = Phaser.Display.Color.ValueToColor(0xbfeaff);
-    for (let y = 0; y < H; y++) {
-      const t = y / H;
-      const c = Phaser.Display.Color.Interpolate.ColorWithColor(top, bot, 100, t * 100);
-      bg.fillStyle(Phaser.Display.Color.GetColor(c.r, c.g, c.b), 1);
-      bg.fillRect(0, y, W, 1);
-    }
+    // Warm wallpaper with subtle vertical stripes.
+    bg.fillStyle(0xcdb089, 1);
+    bg.fillRect(0, 0, W, H);
+    bg.fillStyle(0xc2a172, 1);
+    for (let x = 0; x < W; x += 18) bg.fillRect(x, 0, 9, H);
 
-    // Distant hills (two soft layers for depth).
-    bg.fillStyle(0x7bc24a, 1);
-    bg.fillCircle(120, 280, 110);
-    bg.fillCircle(300, 290, 130);
-    bg.fillStyle(0x69ad3c, 1);
-    bg.fillCircle(220, 300, 120);
-    bg.fillCircle(420, 300, 120);
+    // A night-time window: dark panes, a moon, a few stars, wooden frame + muntins.
+    const wx = 296, wy = 38, ww = 122, wh = 92;
+    bg.fillStyle(0x223a5e, 1);
+    bg.fillRect(wx, wy, ww, wh);
+    bg.fillStyle(0xf2efc7, 1);
+    bg.fillCircle(wx + 92, wy + 26, 12);                 // moon
+    bg.fillStyle(0xffffff, 1);
+    [[20, 18], [46, 60], [70, 24], [30, 74], [100, 64]].forEach(([sx, sy]) =>
+      bg.fillRect(wx + sx, wy + sy, 2, 2));              // stars
+    bg.fillStyle(0x7a4a22, 1);                            // frame
+    bg.fillRect(wx - 6, wy - 6, ww + 12, 6);
+    bg.fillRect(wx - 6, wy + wh, ww + 12, 6);
+    bg.fillRect(wx - 6, wy - 6, 6, wh + 12);
+    bg.fillRect(wx + ww, wy - 6, 6, wh + 12);
+    bg.fillRect(wx + ww / 2 - 2, wy, 4, wh);             // vertical muntin
+    bg.fillRect(wx, wy + wh / 2 - 2, ww, 4);             // horizontal muntin
 
-    // Fluffy clouds.
-    bg.fillStyle(0xffffff, 0.9);
-    const cloud = (cx, cy, s) => {
-      bg.fillCircle(cx, cy, 9 * s);
-      bg.fillCircle(cx + 11 * s, cy + 2 * s, 7 * s);
-      bg.fillCircle(cx - 11 * s, cy + 2 * s, 7 * s);
-      bg.fillRect(cx - 11 * s, cy + 2 * s, 22 * s, 7 * s);
-    };
-    cloud(90, 50, 1);
-    cloud(360, 36, 1.3);
-    cloud(250, 80, 0.8);
+    // Skirting board / baseboard along the bottom of the wall.
+    bg.fillStyle(0x6b4a2a, 1);
+    bg.fillRect(0, H - 26, W, 8);
   }
 
   // Create one patrolling enemy. `range` = how far it walks before turning.

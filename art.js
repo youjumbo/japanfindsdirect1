@@ -25,11 +25,12 @@ const PALETTE = {
   z: 0x5a3416, // outline / brace
   w: 0xb07434, // wood mid
   y: 0xcf9354, // wood light
-  // enemy (green critter)
-  q: 0x2a5418, // outline
-  g: 0x5fae3a, // body
-  m: 0x82d04f, // body light
-  h: 0x3d7a26, // body shadow
+  // enemy (robot rat — one of Fat Cat's mechanical henchmen)
+  S: 0x9aa3ad, // steel
+  i: 0xc7cdd4, // steel highlight
+  s: 0x5e6670, // steel shadow
+  b: 0x33383f, // bolt / wheel
+  X: 0xe23b3b, // red eye
   // acorn
   C: 0x6e4a23, // cap
   a: 0xd9a066, // nut
@@ -94,21 +95,20 @@ const CRATE = [
   'zzzzzzzzzzzzzzzz',
 ];
 
+// A robot rat: steel body, red sensor eye, bolt-wheels. Patrols left/right.
 const ENEMY = [
-  '....qqqqqqqq....',
-  '..qqmmmmmmmmqq..',
-  '.qmmmmmmmmmmmmq.',
-  '.qmmgggggggmmmq.',
-  'qmmgggggggggggmq',
-  'qmgggWWgggWWgggq',
-  'qmgggEWgggEWgggq',
-  'qmgggggggggggggq',
-  'qmgggggggggggggq',
-  'qmmggghhhhgggmmq',
-  '.qmmgggggggggmq.',
-  '..qmgggggggggq..',
-  '...qqmggggmqq...',
-  '...qq......qq...',
+  '........KKKK........',
+  '.....KKKiiSSKK......',
+  '...KKSiiSSSSSSKK....',
+  '..KSiiSSSSSSSSSSSK..',
+  '.KSSXXSSSSSSSSSSSSK.',
+  '.KSSXXSSSSSSSSSSSsK.',
+  '.KSSSSSSSSSSSSSSSsbK',
+  '..KSSSSSSSSSSSSKKss.',
+  '...KKSSSSSSSSKK.....',
+  '....KbKKKKbK........',
+  '....KWbKKbWK........',
+  '.....KK..KK.........',
 ];
 
 const ACORN = [
@@ -126,24 +126,24 @@ const ACORN = [
   '....KKKK....',
 ];
 
-// A 16x16 ground tile: a grassy top over dirt, designed to tile seamlessly.
+// A 16x16 wooden-floorboard tile (the chipmunks stand on house furniture/floor).
 const GROUND = [
-  'tttttttttttttttt',
-  'tTttTtttTtttTttt',
-  'TtttTtttTtttTttt',
-  'rrrrrrrrrrrrrrrr',
-  'rrrRrrrrrrrrRrrr',
-  'rrrrrrrrRrrrrrrr',
-  'rRrrrrrrrrrrrrRr',
-  'rrrrrrRrrrrRrrrr',
-  'rrrrrrrrrrrrrrrr',
-  'rrRrrrrrrrRrrrrr',
-  'rrrrrrrrRrrrrrrr',
-  'rRrrrrRrrrrrrrRr',
-  'rrrrrrrrrrrrRrrr',
-  'rrrRrrrrrrrrrrrr',
-  'rrrrrrrrrRrrrrRr',
-  'rrrrRrrrrrrrrrrr',
+  'yyyyyyyyyyyyyyyy',
+  'wwwwwwwwwwwwwwww',
+  'wwwwwwzwwwwwwwww',
+  'wwwwwwwwwwwwwwww',
+  'zzzzzzzzzzzzzzzz',
+  'wwwwwwwwwwwwwwww',
+  'wwwwwwwwwwwzwwww',
+  'wwwwwwwwwwwwwwww',
+  'yyyyyyyyyyyyyyyy',
+  'wwwwwwwwwwwwwwww',
+  'wwwzwwwwwwwwwwww',
+  'wwwwwwwwwwwwwwww',
+  'zzzzzzzzzzzzzzzz',
+  'wwwwwwwwwwwwwwww',
+  'wwwwwwwwwwwwzwww',
+  'wwwwwwwwwwwwwwww',
 ];
 
 // Render one character grid into a Phaser texture under the given key.
