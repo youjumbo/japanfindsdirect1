@@ -25,8 +25,9 @@
   <p id="hint">←/→ move &nbsp;•&nbsp; ↑ or Z jump &nbsp;•&nbsp; ↓ crouch &nbsp;•&nbsp; X grab/throw crate</p>
   <div id="game"></div>
 
-  <!-- Phaser 3 from CDN. No build step, no install — just open this file. -->
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <!-- Phaser 3, vendored locally so the game runs fully offline. -->
+  <script src="vendor/phaser.min.js"></script>
+  <script src="art.js"></script>
   <script src="main.js"></script>
 </body>
 </html>

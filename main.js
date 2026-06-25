@@ -26,86 +26,18 @@ const TUNING = {
   throwLift: 120,        // small upward kick so throws arc a little
 };
 
-// ---------------------------------------------------------------------------
-// A "texture factory": instead of loading PNGs, we draw little shapes once and
-// bake them into reusable textures. This is the trick that lets us ship art
-// without any asset files.
-// ---------------------------------------------------------------------------
-function makeTextures(scene) {
-  const g = scene.make.graphics({ x: 0, y: 0, add: false });
+// Texture generation now lives in art.js (buildTextures + pixel-art sprites).
 
-  // Hero (a chipmunk-ish critter): a rounded body + ears + eyes.
-  g.clear();
-  g.fillStyle(0xc46a16, 1);                 // body
-  g.fillRoundedRect(2, 4, 16, 20, 5);
-  g.fillStyle(0xf2b06b, 1);                 // belly
-  g.fillRoundedRect(6, 12, 8, 11, 3);
-  g.fillStyle(0xc46a16, 1);                 // ears
-  g.fillCircle(5, 4, 3);
-  g.fillCircle(15, 4, 3);
-  g.fillStyle(0x000000, 1);                 // eyes
-  g.fillCircle(8, 9, 1.5);
-  g.fillCircle(12, 9, 1.5);
-  g.generateTexture('hero', 20, 26);
-
-  // Hero crouching: same idea, but squashed shorter so it reads as ducking.
-  g.clear();
-  g.fillStyle(0xc46a16, 1);
-  g.fillRoundedRect(2, 10, 16, 14, 5);
-  g.fillStyle(0xf2b06b, 1);
-  g.fillRoundedRect(6, 16, 8, 7, 3);
-  g.fillStyle(0x000000, 1);
-  g.fillCircle(8, 14, 1.5);
-  g.fillCircle(12, 14, 1.5);
-  g.generateTexture('heroCrouch', 20, 26);
-
-  // Crate: the throwable box, with an X-brace so rotation is visible in flight.
-  g.clear();
-  g.fillStyle(0x8a5a2b, 1);
-  g.fillRect(0, 0, 18, 18);
-  g.lineStyle(2, 0x5e3c1c, 1);
-  g.strokeRect(1, 1, 16, 16);
-  g.beginPath();
-  g.moveTo(1, 1); g.lineTo(17, 17);
-  g.moveTo(17, 1); g.lineTo(1, 17);
-  g.strokePath();
-  g.generateTexture('crate', 18, 18);
-
-  // Enemy: a simple roaming critter in an alarming color.
-  g.clear();
-  g.fillStyle(0x7b2d8e, 1);
-  g.fillRoundedRect(1, 3, 18, 15, 4);
-  g.fillStyle(0xffffff, 1);
-  g.fillCircle(6, 9, 2.5);
-  g.fillCircle(13, 9, 2.5);
-  g.fillStyle(0x000000, 1);
-  g.fillCircle(6, 9, 1.2);
-  g.fillCircle(13, 9, 1.2);
-  g.generateTexture('enemy', 20, 20);
-
-  // Acorn: the collectible.
-  g.clear();
-  g.fillStyle(0x6b4423, 1);                 // cap
-  g.fillRoundedRect(2, 0, 10, 5, 2);
-  g.fillStyle(0xd9a066, 1);                 // nut
-  g.fillRoundedRect(3, 4, 8, 8, 3);
-  g.generateTexture('acorn', 14, 12);
-
-  // A 1x1 white pixel we tint to build platforms of any size.
-  g.clear();
-  g.fillStyle(0xffffff, 1);
-  g.fillRect(0, 0, 1, 1);
-  g.generateTexture('pixel', 1, 1);
-
-  g.destroy();
-}
-
-// Helper: make a solid-colored static platform by stretching the white pixel.
-function addPlatform(scene, x, y, w, h, color) {
-  const p = scene.platforms.create(x, y, 'pixel');
-  p.setDisplaySize(w, h).refreshBody();
-  p.setTint(color);
-  return p;
+// Helper: a platform = an INVISIBLE static collision body + a visible tiled
+// ground texture on top. Tiling keeps the pixel art crisp at any width instead
+// of stretching one image.
+function addPlatform(scene, x, y, w, h) {
+  const body = scene.platforms.create(x, y, 'pixel');
+  body.setDisplaySize(w, h).refreshBody();
+  body.setVisible(false);
+  const tile = scene.add.tileSprite(x, y, w, h, 'ground');
+  tile.setDepth(-1);   // sit behind the player and entities
+  return body;
 }
 
 // ---------------------------------------------------------------------------
@@ -120,15 +52,18 @@ class GameScene extends Phaser.Scene {
   }
 
   create() {
-    // 1) Build all our shape textures up front.
-    makeTextures(this);
+    // 1) Build all our pixel-art textures up front (see art.js).
+    buildTextures(this);
+
+    // 1b) Paint a layered background (sky gradient, hills, clouds).
+    this.buildBackground();
 
     // 2) Static world geometry (ground + a few ledges to jump between).
     this.platforms = this.physics.add.staticGroup();
-    addPlatform(this, 240, 262, 480, 16, 0x3a5e3a);   // ground
-    addPlatform(this, 110, 200, 120, 12, 0x4a6e4a);   // low ledge
-    addPlatform(this, 340, 160, 120, 12, 0x4a6e4a);   // mid ledge
-    addPlatform(this, 240, 110, 90, 12, 0x4a6e4a);    // high ledge
+    addPlatform(this, 240, 262, 480, 16);   // ground
+    addPlatform(this, 110, 200, 120, 12);   // low ledge
+    addPlatform(this, 340, 160, 120, 12);   // mid ledge
+    addPlatform(this, 240, 110, 90, 12);    // high ledge
 
     // 3) The hero. Arcade Physics gives us gravity + collisions for free.
     this.hero = this.physics.add.sprite(60, 200, 'hero');
@@ -190,6 +125,46 @@ class GameScene extends Phaser.Scene {
     this.lives = 3;
     this.hud = this.add.text(8, 6, '', { fontFamily: 'monospace', fontSize: '12px', color: '#ffffff' });
     this.updateHud();
+  }
+
+  // Paint a simple parallax-style backdrop: a vertical sky gradient, two
+  // rolling hills, and a few clouds. All drawn with the Graphics API so it
+  // needs no images. Sits behind everything (negative depth).
+  buildBackground() {
+    const W = TUNING.width;
+    const H = TUNING.height;
+    const bg = this.add.graphics();
+    bg.setDepth(-10);
+
+    // Sky gradient (top color -> bottom color), drawn as thin horizontal bands.
+    const top = Phaser.Display.Color.ValueToColor(0x4aa6e0);
+    const bot = Phaser.Display.Color.ValueToColor(0xbfeaff);
+    for (let y = 0; y < H; y++) {
+      const t = y / H;
+      const c = Phaser.Display.Color.Interpolate.ColorWithColor(top, bot, 100, t * 100);
+      bg.fillStyle(Phaser.Display.Color.GetColor(c.r, c.g, c.b), 1);
+      bg.fillRect(0, y, W, 1);
+    }
+
+    // Distant hills (two soft layers for depth).
+    bg.fillStyle(0x7bc24a, 1);
+    bg.fillCircle(120, 280, 110);
+    bg.fillCircle(300, 290, 130);
+    bg.fillStyle(0x69ad3c, 1);
+    bg.fillCircle(220, 300, 120);
+    bg.fillCircle(420, 300, 120);
+
+    // Fluffy clouds.
+    bg.fillStyle(0xffffff, 0.9);
+    const cloud = (cx, cy, s) => {
+      bg.fillCircle(cx, cy, 9 * s);
+      bg.fillCircle(cx + 11 * s, cy + 2 * s, 7 * s);
+      bg.fillCircle(cx - 11 * s, cy + 2 * s, 7 * s);
+      bg.fillRect(cx - 11 * s, cy + 2 * s, 22 * s, 7 * s);
+    };
+    cloud(90, 50, 1);
+    cloud(360, 36, 1.3);
+    cloud(250, 80, 0.8);
   }
 
   // Create one patrolling enemy. `range` = how far it walks before turning.

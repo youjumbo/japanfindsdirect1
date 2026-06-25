@@ -4,10 +4,10 @@ A small, original platformer built to **learn game mechanics** by recreating the
 classic NES rescue-platformer feel: run, jump, crouch, **pick up a crate and
 throw it at an enemy**, and collect acorns.
 
-All art is **drawn from code as simple shapes** — there are no imported sprites,
-music, or backgrounds. That keeps the project fully original and means it runs
-with no downloads or build step. Once the gameplay feels right, we can replace
-the shapes with original pixel art.
+All art is **original pixel art drawn from data** (see `art.js`) — each sprite is
+a character grid with a palette, outline, and shading, rendered to a texture at
+runtime. There are no imported game rips. Phaser is vendored in `vendor/` so the
+whole thing runs **fully offline**, no build step.
 
 ## How to run
 
@@ -20,8 +20,7 @@ python3 -m http.server 8000
 # then visit http://localhost:8000 in your browser
 ```
 
-(Phaser itself loads from a CDN, so you do need an internet connection the first
-time.)
+No internet connection needed — Phaser is vendored in `vendor/`.
 
 ## Controls
 
@@ -53,4 +52,4 @@ Throw a crate **into an enemy** to defeat it. Walking into an enemy costs a life
 2. Make crates **break** after a thrown hit instead of bouncing.
 3. Add a "hide inside the box" stealth state.
 4. Scroll the camera and build a longer level.
-5. Replace shape textures with your own original pixel art.
+5. Redraw any sprite by editing its character grid in `art.js`.
