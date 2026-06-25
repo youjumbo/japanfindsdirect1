@@ -29,13 +29,13 @@ const TUNING = {
 // Texture generation now lives in art.js (buildTextures + pixel-art sprites).
 
 // Helper: a platform = an INVISIBLE static collision body + a visible tiled
-// ground texture on top. Tiling keeps the pixel art crisp at any width instead
-// of stretching one image.
-function addPlatform(scene, x, y, w, h) {
+// texture on top. Tiling keeps the pixel art crisp at any width instead of
+// stretching one image. `tileKey` picks the surface (cobble floor, wood block).
+function addPlatform(scene, x, y, w, h, tileKey = 'woodblock') {
   const body = scene.platforms.create(x, y, 'pixel');
   body.setDisplaySize(w, h).refreshBody();
   body.setVisible(false);
-  const tile = scene.add.tileSprite(x, y, w, h, 'ground');
+  const tile = scene.add.tileSprite(x, y, w, h, tileKey);
   tile.setDepth(-1);   // sit behind the player and entities
   return body;
 }
@@ -55,15 +55,19 @@ class GameScene extends Phaser.Scene {
     // 1) Build all our pixel-art textures up front (see art.js).
     buildTextures(this);
 
-    // 1b) Paint a layered background (sky gradient, hills, clouds).
+    // 1b) Paint the back-alley backdrop (brick wall + windows).
     this.buildBackground();
 
-    // 2) Static world geometry (ground + a few ledges to jump between).
+    // 2) Static world geometry: cobblestone floor + tall wooden-plank blocks.
     this.platforms = this.physics.add.staticGroup();
-    addPlatform(this, 240, 262, 480, 16);   // ground
-    addPlatform(this, 110, 200, 120, 12);   // low ledge
-    addPlatform(this, 340, 160, 120, 12);   // mid ledge
-    addPlatform(this, 240, 110, 90, 12);    // high ledge
+    addPlatform(this, 240, 262, 480, 16, 'cobble');   // pavement
+    addPlatform(this, 110, 200, 120, 12, 'woodblock'); // low ledge
+    addPlatform(this, 340, 160, 120, 12, 'woodblock'); // mid ledge
+    addPlatform(this, 240, 110, 90, 12, 'woodblock');  // high ledge
+
+    // 2b) Decorative props that sell the setting (no collision).
+    this.add.image(70, 188, 'plant').setDepth(0);
+    this.add.image(430, 240, 'trashcan').setDepth(0);
 
     // 3) The hero. Arcade Physics gives us gravity + collisions for free.
     this.hero = this.physics.add.sprite(60, 200, 'hero');
@@ -73,16 +77,21 @@ class GameScene extends Phaser.Scene {
     this.hero.crouching = false;
     this.physics.add.collider(this.hero, this.platforms);
 
-    // 4) Crates — a dynamic group so each one falls, stacks, and can be thrown.
+    // 4) Throwables — crates AND apples share one group, so the grab/throw code
+    //    treats them identically (just different art). Each falls, stacks, and
+    //    can be picked up and chucked at enemies.
     this.crates = this.physics.add.group();
-    [180, 300, 360].forEach((x) => {
-      const c = this.crates.create(x, 120, 'crate');
+    const addThrowable = (x, y, tex) => {
+      const c = this.crates.create(x, y, tex);
       c.setCollideWorldBounds(true);
       c.held = false;             // is the hero currently holding it?
       c.thrown = false;           // is it mid-flight from a throw?
-    });
+    };
+    [180, 300, 360].forEach((x) => addThrowable(x, 120, 'crate'));
+    addThrowable(150, 120, 'apple');
+    addThrowable(390, 120, 'apple');
     this.physics.add.collider(this.crates, this.platforms);
-    this.physics.add.collider(this.crates, this.crates);  // crates stack
+    this.physics.add.collider(this.crates, this.crates);  // they stack
 
     // 5) Enemies that patrol back and forth on the ground.
     this.enemies = this.physics.add.group();
@@ -91,7 +100,7 @@ class GameScene extends Phaser.Scene {
 
     // 6) Acorns to collect, scattered on the ledges.
     this.acorns = this.physics.add.staticGroup();
-    [[110, 185], [340, 145], [240, 95], [430, 240]].forEach(([x, y]) => {
+    [[110, 185], [340, 145], [240, 95], [190, 244]].forEach(([x, y]) => {
       this.acorns.create(x, y, 'acorn');
     });
 
@@ -120,49 +129,59 @@ class GameScene extends Phaser.Scene {
     this.keyJump = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
     this.keyGrab = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
 
-    // 8) Simple HUD drawn as text.
+    // 8) HUD: an acorn counter (text) plus heart icons for health.
     this.score = 0;
     this.lives = 3;
-    this.hud = this.add.text(8, 6, '', { fontFamily: 'monospace', fontSize: '12px', color: '#ffffff' });
+    this.hud = this.add.text(8, 6, '', { fontFamily: 'monospace', fontSize: '12px', color: '#ffffff' }).setDepth(100);
+    this.hearts = [];
+    for (let i = 0; i < 3; i++) {
+      const himg = this.add.image(120 + i * 14, 12, 'heart').setDepth(100);
+      this.hearts.push(himg);
+    }
     this.updateHud();
   }
 
-  // Paint an INDOOR room backdrop — the core Rescue Rangers vibe of tiny heroes
-  // inside a giant human house. Striped wallpaper, a night window, and a wooden
-  // baseboard. All drawn with the Graphics API (no images). Negative depth so it
-  // sits behind the player and platforms.
+  // Paint the back-alley backdrop: a gray brick wall with a couple of windows.
+  // The signature scale comes from the cobblestone + giant plank blocks in
+  // front; the wall sits far behind everything (negative depth).
   buildBackground() {
     const W = TUNING.width;
     const H = TUNING.height;
     const bg = this.add.graphics();
     bg.setDepth(-10);
 
-    // Warm wallpaper with subtle vertical stripes.
-    bg.fillStyle(0xcdb089, 1);
+    // Brick wall: mortar-colored base, then offset brick courses on top.
+    bg.fillStyle(0x6b7178, 1);
     bg.fillRect(0, 0, W, H);
-    bg.fillStyle(0xc2a172, 1);
-    for (let x = 0; x < W; x += 18) bg.fillRect(x, 0, 9, H);
+    const bw = 30, bh = 14;            // brick width / height (incl. mortar gap)
+    for (let row = 0, y = 0; y < H; row++, y += bh) {
+      const offset = row % 2 ? -bw / 2 : 0;
+      for (let x = offset; x < W; x += bw) {
+        bg.fillStyle(0x8a8f96, 1);
+        bg.fillRect(x + 1, y + 1, bw - 2, bh - 2);
+        bg.fillStyle(0xa6abb2, 1);     // top highlight on each brick
+        bg.fillRect(x + 1, y + 1, bw - 2, 2);
+      }
+    }
 
-    // A night-time window: dark panes, a moon, a few stars, wooden frame + muntins.
-    const wx = 296, wy = 38, ww = 122, wh = 92;
-    bg.fillStyle(0x223a5e, 1);
-    bg.fillRect(wx, wy, ww, wh);
-    bg.fillStyle(0xf2efc7, 1);
-    bg.fillCircle(wx + 92, wy + 26, 12);                 // moon
-    bg.fillStyle(0xffffff, 1);
-    [[20, 18], [46, 60], [70, 24], [30, 74], [100, 64]].forEach(([sx, sy]) =>
-      bg.fillRect(wx + sx, wy + sy, 2, 2));              // stars
-    bg.fillStyle(0x7a4a22, 1);                            // frame
-    bg.fillRect(wx - 6, wy - 6, ww + 12, 6);
-    bg.fillRect(wx - 6, wy + wh, ww + 12, 6);
-    bg.fillRect(wx - 6, wy - 6, 6, wh + 12);
-    bg.fillRect(wx + ww, wy - 6, 6, wh + 12);
-    bg.fillRect(wx + ww / 2 - 2, wy, 4, wh);             // vertical muntin
-    bg.fillRect(wx, wy + wh / 2 - 2, ww, 4);             // horizontal muntin
-
-    // Skirting board / baseboard along the bottom of the wall.
-    bg.fillStyle(0x6b4a2a, 1);
-    bg.fillRect(0, H - 26, W, 8);
+    // Two daylight windows (blue panes with a diagonal glass shine + frame).
+    const window = (wx, wy) => {
+      const ww = 70, wh = 46;
+      bg.fillStyle(0x5bb3d6, 1);
+      bg.fillRect(wx, wy, ww, wh);
+      bg.fillStyle(0xcdeef8, 0.7);                 // diagonal shine streaks
+      bg.fillTriangle(wx + 8, wy + wh, wx + 26, wy, wx + 36, wy);
+      bg.fillTriangle(wx + 40, wy + wh, wx + 54, wy, wx + 60, wy);
+      bg.fillStyle(0x7a4a22, 1);                   // frame + muntins
+      bg.fillRect(wx - 4, wy - 4, ww + 8, 4);
+      bg.fillRect(wx - 4, wy + wh, ww + 8, 4);
+      bg.fillRect(wx - 4, wy - 4, 4, wh + 8);
+      bg.fillRect(wx + ww, wy - 4, 4, wh + 8);
+      bg.fillRect(wx + ww / 2 - 2, wy, 4, wh);
+      bg.fillRect(wx, wy + wh / 2 - 2, ww, 4);
+    };
+    window(70, 30);
+    window(300, 24);
   }
 
   // Create one patrolling enemy. `range` = how far it walks before turning.
@@ -176,7 +195,9 @@ class GameScene extends Phaser.Scene {
   }
 
   updateHud() {
-    this.hud.setText(`Acorns: ${this.score}    Lives: ${this.lives}`);
+    this.hud.setText(`Acorns: ${this.score}`);
+    // Show one heart per remaining life; dim the lost ones.
+    this.hearts.forEach((h, i) => h.setAlpha(i < this.lives ? 1 : 0.2));
   }
 
   // Lose a life and reset the hero to the start.
